@@ -19,5 +19,7 @@ save(rh_url,
     rh_content,
     rh_threads,
     rh_comments,
-    file = "redhot_raw.RData"
+    file = "raw_reddit.RData"
 )
+
+save.image(file = "rawdata_reddit&x.RData")

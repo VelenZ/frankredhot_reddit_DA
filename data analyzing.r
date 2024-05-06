@@ -134,7 +134,7 @@ x_combined_data <- cbind(
     matrix(x_421_bart_mean, ncol = 1, dimnames = list(names(x_421_bart_mean), NULL)),
     matrix(x_427_bart_mean, ncol = 1, dimnames = list(names(x_427_bart_mean), NULL))
 )
-colnames(x_combined_data) <- c("Apr 14-21", "Apr 20-27")
+colnames(x_combined_data) <- c("Apr 14-20", "Apr 21-27")
 
 # Function for outputting sentiment bar graphs
 create_emotion_plot <- function(emotion_data, colors, title) {
@@ -245,8 +245,8 @@ create_word_bag <- function(text, k) {
 }
 
 # Combine and output seven sets of word bags
-set.seed(2)
-word_bag <- create_word_bag(c(x_421, x_427), 7)
+set.seed(3)
+word_bag <- create_word_bag(c(x_421, x_427), 8)
 word_bag
 ################################################################################
 
@@ -325,8 +325,14 @@ rh_comments_ap_text_bart_mean <- rh_comments_ap_text_bart %>%
 
 # Only used comment data for analysis, as some posts are meaningless
 rh_comments_combined_data <- cbind(
-    matrix(rh_comments_bp_text_bart_mean, ncol = 1, dimnames = list(names(rh_comments_bp_text_bart_mean), NULL)),
-    matrix(rh_comments_ap_text_bart_mean, ncol = 1, dimnames = list(names(rh_comments_ap_text_bart_mean), NULL))
+    matrix(rh_comments_bp_text_bart_mean,
+        ncol = 1,
+        dimnames = list(names(rh_comments_bp_text_bart_mean), NULL)
+    ),
+    matrix(rh_comments_ap_text_bart_mean,
+        ncol = 1,
+        dimnames = list(names(rh_comments_ap_text_bart_mean), NULL)
+    )
 )
 colnames(rh_comments_combined_data) <- c("Before 02-08-2024", "After 02-08-2024")
 create_emotion_plot(
@@ -423,9 +429,18 @@ rh_comments_text_bart_mean <- rh_comments_text_bart %>%
 
 # Plot sentiment graphs for Frank and competitors
 all_comments_combined_data <- cbind(
-    matrix(rh_comments_text_bart_mean, ncol = 1, dimnames = list(names(rh_comments_bp_text_bart_mean), NULL)),
-    matrix(ta_comments_text_bart_mean, ncol = 1, dimnames = list(names(rh_comments_ap_text_bart_mean), NULL)),
-    matrix(tp_comments_text_bart_mean, ncol = 1, dimnames = list(names(rh_comments_ap_text_bart_mean), NULL))
+    matrix(rh_comments_text_bart_mean,
+        ncol = 1,
+        dimnames = list(names(rh_comments_bp_text_bart_mean), NULL)
+    ),
+    matrix(ta_comments_text_bart_mean,
+        ncol = 1,
+        dimnames = list(names(rh_comments_ap_text_bart_mean), NULL)
+    ),
+    matrix(tp_comments_text_bart_mean,
+        ncol = 1,
+        dimnames = list(names(rh_comments_ap_text_bart_mean), NULL)
+    )
 )
 colnames(all_comments_combined_data) <- c("Frank's RedHot", "Tapatio Hot Sauce", "Texas Pete")
 create_emotion_plot(

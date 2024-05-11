@@ -4,7 +4,8 @@
 # 2.部分代码在其他文件中运行，包括json文件转档及拉取Reddit数据等。
 # 3.鉴于部分代码运行时间较长，我在.RData文件中存储了所有变量以便代码审查。
 # 4.尽管我控制了部分代码的随机数，但是我无法保证结果相同。因此结论仅供参考。
-# 5.连续运行transformer_scores函数可能导致灾难性的令R崩溃的内存分配问题（特别是RStudio），
+# 5.鉴于样本量较大，transformer_scores函数运行时间通常较长（20到60分钟不等），
+#   连续运行transformer_scores函数可能导致灾难性的令R崩溃的内存分配问题（特别是RStudio），
 #   暂无除了运行rm(list = ls())外的解决方案。
 # 6.代码托管于https://github.com/VelenZ/frankredhot_reddit_DA，欢迎提出issues！
 ################################################################################
@@ -20,8 +21,11 @@
 # 4. Although I have controlled the randomness in some of the code,
 #    I cannot guarantee identical results.
 #    Therefore, the conclusions are for reference only.
-# 5. Continuously running the transformer_scores function
-#    may lead to catastrophic memory allocation issues that cause R to crash
+# 5. Given the large sample size,
+#    the transformer_scores function typically takes a long time to run,
+#    ranging from 20 to 60 minutes.
+#    Continuously running the transformer_scores function may lead to
+#    catastrophic memory allocation issues that cause R to crash
 #    (especially in RStudio),
 #    currently no solution other than running rm(list = ls()).
 # 6. The code is hosted at https://github.com/VelenZ/frankredhot_reddit_DA,
@@ -35,7 +39,7 @@
 setwd("/Users/velen/Documents/文稿-iCloud/Learning/JHU/Sping II/Social Media Analytics/Final/frankredhot_reddit_DA")
 
 # 加载.RData文件
-# 里面有些没删干净的临时变量，不影响运行
+# Some temporary variables are not deleted
 load("frank_da_work_space.RData")
 # load("rawdata_reddit&x.RData")
 # load("workspace.RData")
@@ -113,6 +117,12 @@ x_421_bart <- transformer_scores(
     classes = c("anger", "anticipation", "disgust", "fear", "joy", "sadness", "surprise", "trust"),
     transformer = "facebook-bart"
 )
+
+x_421_table <- as.data.table(x_421)
+x_421_bart_table <- t(as.data.table(x_421_bart))
+x_421_full <- cbind(x_421_table, x_421_bart_table)
+colnames(x_421_full) <- c("text", "anger", "anticipation", "disgust", "fear", "joy", "sadness", "surprise", "trust")
+
 x_421_bart_mean <- x_421_bart %>%
     as.data.table() %>%
     transpose() %>%
@@ -123,6 +133,12 @@ x_427_bart <- transformer_scores(
     classes = c("anger", "anticipation", "disgust", "fear", "joy", "sadness", "surprise", "trust"),
     transformer = "facebook-bart"
 )
+
+x_427_table <- as.data.table(x_427)
+x_427_bart_table <- t(as.data.table(x_427_bart))
+x_427_full <- cbind(x_427_table, x_427_bart_table)
+colnames(x_427_full) <- c("text", "anger", "anticipation", "disgust", "fear", "joy", "sadness", "surprise", "trust")
+
 x_427_bart_mean <- x_427_bart %>%
     as.data.table() %>%
     transpose() %>%
@@ -167,11 +183,13 @@ create_emotion_plot <- function(emotion_data, colors, title) {
 }
 
 # Plotting sentiment comparison
-create_emotion_plot(
+p_1 <- create_emotion_plot(
     x_combined_data,
     c("#6BAED6", "#FD8D3C"),
     "Comparison of Emotions Across Two Weeks"
-)
+) + theme(text = element_text(family = "Times New Roman"))
+p_1
+ggsave("plot1.png", plot = p_1, width = 6, height = 3.2, dpi = 300)
 
 
 # Function for organizing text and outputting word clouds
@@ -202,7 +220,7 @@ create_word_cloud <- function(text) {
         max.words = 200,
         random.order = FALSE,
         rot.per = 0.1,
-        colors = brewer.pal(10, "Reds")
+        colors = brewer.pal(9, "Reds")
     )
 }
 
@@ -210,7 +228,8 @@ create_word_cloud <- function(text) {
 # Since there is no significant difference between the two word clouds,
 # only one is outputted
 set.seed(2)
-create_word_cloud(c(x_421, x_427))
+p_c <- create_word_cloud(c(x_421, x_427))
+ggsave("plotc.png", plot = p_c, width = 3, height = 3, dpi = 300)
 
 
 # Function for organizing text and outputting word bags
@@ -228,7 +247,7 @@ create_word_bag <- function(text, k) {
 
     # k <- k
     n <- 1000
-    text_bag_result <- lda.collapsed.gibbs.sampler(
+    result <- lda.collapsed.gibbs.sampler(
         text_bag$documents,
         k,
         text_bag$vocab,
@@ -238,16 +257,32 @@ create_word_bag <- function(text, k) {
         compute.log.likelihood = TRUE
     )
     par(mar = c(3, 3, 3, 3))
-    plot(text_bag_result$log.likelihoods[1, ], type = "o")
-    r <- top.topic.words(text_bag_result$topics, 10, by.score = TRUE)
+    plot(result$log.likelihoods[1, ], type = "o")
+    word <- top.topic.words(result$topics, 10, by.score = TRUE)
 
-    return(r)
+    return(list(result$document_sums, word))
 }
 
-# Combine and output seven sets of word bags
 set.seed(3)
 word_bag <- create_word_bag(c(x_421, x_427), 8)
-word_bag
+word_bag[2]
+
+# Combine and output seven sets of word bags
+x_full <- cbind(
+    rbind(x_421_full, x_427_full),
+    t(as.data.table(word_bag[1]))
+)
+# x_full_b <- x_full
+x_full[, 10:17] <- x_full[, 10:17] / rowSums(x_full[, 10:17])
+
+round(cor(x_full[, 2:17])[9:16, 1:8], 4)
+
+# t <- t(as.data.table(create_word_bag(c(x_421, x_427), 8)[1]))
+# n <- create_word_bag(c(x_421, x_427), 8)[1]
+
+# create_word_bag(c(x_421, x_427), 8)[3]
+
+# x_full <- cbind(c(x_421_full, x_427_full), t(as.data.table(create_word_bag(c(x_421, x_427), 8)[1])))
 ################################################################################
 
 
@@ -335,11 +370,14 @@ rh_comments_combined_data <- cbind(
     )
 )
 colnames(rh_comments_combined_data) <- c("Before 02-08-2024", "After 02-08-2024")
-create_emotion_plot(
+
+p_2 <- create_emotion_plot(
     rh_comments_combined_data,
     c("#A1D99B", "#BCBDDC"),
-    "Comparison of Emotions Before and After Jason Kelce Becomes a Spokesperson (Comments Only)"
-)
+    "Comparison of Emotions Before and After Superbowl"
+) + theme(text = element_text(family = "Times New Roman"))
+p_2
+ggsave("plot2.png", plot = p_2, width = 6, height = 3.2, dpi = 300)
 
 # rh_threads_bp_text_bart <- transformer_scores(
 #     text = rh_threads_bp_text,
@@ -377,7 +415,7 @@ create_emotion_plot(
 #     find_thread_urls(
 #         keywords = "texas pete",
 #         sort_by = "relevance",
-#         period = "year"
+#         period = "all"
 #     )
 # tp_content <- get_thread_content(tp_url$url)
 # tp_threads <- tp_content$threads
@@ -443,11 +481,14 @@ all_comments_combined_data <- cbind(
     )
 )
 colnames(all_comments_combined_data) <- c("Frank's RedHot", "Tapatio Hot Sauce", "Texas Pete")
-create_emotion_plot(
+
+p_3 <- create_emotion_plot(
     all_comments_combined_data,
     c("#B22222", "#FDD0A2", "#F08080"),
     "Comparison of Emotions Across Three Hot Sauce Brands"
-)
+) + theme(text = element_text(family = "Times New Roman"))
+p_3
+ggsave("plot3.png", plot = p_3, width = 6, height = 3.2, dpi = 300)
 ################################################################################
 
 
